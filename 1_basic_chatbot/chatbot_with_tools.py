@@ -73,5 +73,52 @@ response=graph.invoke({"messages": "What is my name?"}, config)
 # print("[RESPONSE]: ", response)
 # print("response[messages][-1].content: ", response["messages"][-1].content)
 
-for m in response["messages"]:
-    print(m.pretty_print())
+# for m in response["messages"]:
+    # print(m.pretty_print())
+
+
+
+## ====================================== STREAMING ====================================== 
+
+def superbot(state: State):
+    return {"messages": [llm.invoke(state["messages"])]}
+
+graph=StateGraph(State)
+
+graph.add_node("superbot", superbot)
+
+graph.add_edge(START, "superbot")
+graph.add_edge("superbot", END)
+
+graph_builder=graph.compile(checkpointer=memory)
+
+
+# Invocation
+
+config = {"configurable": {"thread_id": "chat1"}}
+
+graph_builder.invoke({"messages": "Hi, My name is Abdul Rahman Moin"}, config)
+
+
+config = {"configurable": {"thread_id": "3"}}
+
+for chunk in graph_builder.stream({"messages": "Hi, My name is Abdul Rahman Moin and I Like Cricket."}, config, stream_mode="updates"):
+    # print(chunk)
+    pass
+
+
+
+
+config = {"configurable": {"thread_id": "4"}}
+
+import asyncio
+
+async def stream_events():
+    async for event in graph_builder.astream_events(
+        {"messages": "Hi, My name is Abdul Rahman Moin and I Like Cricket."},
+        config,
+        version="v2",
+    ):
+        print(event)
+
+asyncio.run(stream_events())
